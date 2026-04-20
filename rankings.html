@@ -3,50 +3,32 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Global Rankings - Hangman</title>
+    <title>Global Rankings</title>
     <link rel="stylesheet" href="style.css">
     <style>
-        body { background-color: #1a1a1a; color: white; text-align: center; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
-        .ranking-container { padding: 20px; max-width: 600px; margin: auto; }
-        h1 { color: #ff9800; margin-bottom: 20px; }
-        table { width: 100%; border-collapse: collapse; background: #2a2a2a; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 15px rgba(0,0,0,0.5); }
-        th, td { padding: 15px; border-bottom: 1px solid #444; text-align: center; }
-        th { background-color: #673ab7; color: white; font-weight: bold; text-transform: uppercase; font-size: 14px; }
-        tr:last-child td { border-bottom: none; }
-        tr:nth-child(even) { background-color: #333; }
-        .back-btn { display: inline-block; margin-top: 30px; padding: 12px 25px; background: #555; color: white; text-decoration: none; border-radius: 8px; font-weight: bold; transition: background 0.3s; }
-        .back-btn:hover { background: #777; }
-        .loading-text { margin-top: 50px; font-size: 18px; color: #888; }
+        body { background: #1a1a1a; color: white; text-align: center; font-family: sans-serif; }
+        .ranking-container { padding: 20px; }
+        table { width: 100%; max-width: 500px; margin: 20px auto; border-collapse: collapse; background: #222; border-radius: 8px; overflow: hidden; }
+        th, td { padding: 12px; border-bottom: 1px solid #444; }
+        th { background: #673ab7; color: white; }
+        .back-btn { display: inline-block; margin-top: 20px; padding: 10px 20px; background: #555; color: white; text-decoration: none; border-radius: 5px; }
     </style>
 </head>
 <body>
     <div class="ranking-container">
         <h1>🏆 Global Top 100</h1>
-        
-        <div id="loading" class="loading-text">Loading scores from the blockchain...</div>
-        
-        <table id="rank-table" style="display: none;">
+        <table>
             <thead>
-                <tr>
-                    <th>Rank</th>
-                    <th>Player</th>
-                    <th>Best Streak</th>
-                </tr>
+                <tr><th>Rank</th><th>User</th><th>Streak</th></tr>
             </thead>
-            <tbody id="rank-data">
-                <!-- Data will be injected here by JS -->
-            </tbody>
+            <tbody id="rank-data"></tbody>
         </table>
-
-        <a href="index.html" class="back-btn">⬅ Back to Game</a>
+        <a href="index.html" class="back-btn">Back to Game</a>
     </div>
 
-    <!-- Firebase SDKs -->
     <script src="https://gstatic.com"></script>
     <script src="https://gstatic.com"></script>
-
     <script>
-        // Your specific Firebase Config
         const firebaseConfig = {
             apiKey: "AIzaSyCsuU8vSH5qRfcm5E78Q7KFYHFJTOTKGDM",
             authDomain: "://firebaseapp.com",
@@ -55,42 +37,19 @@
             messagingSenderId: "681316672354",
             appId: "1:681316672354:web:98f18d8c086729416bc23b"
         };
-
         firebase.initializeApp(firebaseConfig);
         const db = firebase.firestore();
 
-        const rankData = document.getElementById('rank-data');
-        const loading = document.getElementById('loading');
-        const table = document.getElementById('rank-table');
-
-        // Fetch data from Firestore
-        db.collection("leaderboard")
-          .orderBy("streak", "desc")
-          .limit(100)
-          .get()
-          .then((querySnapshot) => {
-              loading.style.display = 'none';
-              table.style.display = 'table';
-              
-              let rows = "";
-              let count = 1;
-              
-              querySnapshot.forEach((doc) => {
-                  const data = doc.data();
-                  rows += `<tr>
-                      <td style="color: #ff9800; font-weight: bold;">#${count}</td>
-                      <td>${data.username || "Unknown Miner"}</td>
-                      <td>${data.streak || 0}</td>
-                  </tr>`;
-                  count++;
-              });
-              
-              rankData.innerHTML = rows || "<tr><td colspan='3'>No players yet. Be the first!</td></tr>";
-          })
-          .catch((error) => {
-              console.error("Error fetching leaderboard: ", error);
-              loading.innerText = "Error loading rankings. Please try again.";
-          });
+        db.collection("leaderboard").orderBy("streak", "desc").limit(100).get().then((querySnapshot) => {
+            let rows = "";
+            let count = 1;
+            querySnapshot.forEach((doc) => {
+                const data = doc.data();
+                rows += `<tr><td>${count}</td><td>${data.username}</td><td>${data.streak}</td></tr>`;
+                count++;
+            });
+            document.getElementById('rank-data').innerHTML = rows || "<tr><td colspan='3'>No scores yet!</td></tr>";
+        });
     </script>
 </body>
 </html>

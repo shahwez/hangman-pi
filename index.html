@@ -3,47 +3,36 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Hangman - Pi Network Edition</title>
+    <title>Hangman - Pi Network</title>
     <link rel="stylesheet" href="style.css">
-    <!-- Pi Network SDK -->
-    <script src="https://minepi.com"></script>
-    <script>Pi.init({ version: "2.0" })</script>
+    <!-- Pi SDK must be in the head -->
+    <script src="https://sdk.minepi.com/pi-sdk.js"></script>
 </head>
 <body>
     <div class="game-container">
         <h1>Hangman</h1>
-        
-        <div class="stats-bar">
+        <div class="stats">
             <p>Streak: <span id="streak">0</span></p>
         </div>
-
-        <div id="hangman-display">
-            <!-- This is where the drawing or life counter goes -->
-            <p id="lives-display">Lives: 6</p>
-        </div>
-
-        <div id="word-display" class="word-container"></div>
         
-        <div id="keyboard" class="keyboard-container"></div>
-
+        <div id="word-display" class="word-section"></div>
+        <div id="keyboard" class="keyboard-section"></div>
         <p id="message-display"></p>
 
-        <div class="button-row">
-            <button id="new-game-btn" onclick="initGame()">New Game</button>
+        <div class="menu-actions">
+            <button onclick="initGame()">New Game</button>
             <a href="rankings.html" class="rankings-link">🏆 World Rankings</a>
         </div>
 
-        <div class="audio-controls">
+        <div class="media-controls">
             <audio id="bg-music" src="music.mp3" loop></audio>
             <button id="music-btn" onclick="handleMusic()">🎵 Play Music</button>
         </div>
     </div>
 
-    <!-- Firebase App (the core Firebase SDK) -->
+    <!-- Firebase SDKs (Compat Version) -->
     <script src="https://gstatic.com"></script>
-    <!-- Firebase Firestore (the database SDK) -->
     <script src="https://gstatic.com"></script>
-    
     <script src="app.js"></script>
 </body>
 </html>

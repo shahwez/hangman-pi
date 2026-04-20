@@ -1,4 +1,4 @@
-// --- FIREBASE INITIALIZATION ---
+// --- 1. FIREBASE CONFIG ---
 const firebaseConfig = {
     apiKey: "AIzaSyCsuU8vSH5qRfcm5E78Q7KFYHFJTOTKGDM",
     authDomain: "://firebaseapp.com",
@@ -8,162 +8,133 @@ const firebaseConfig = {
     appId: "1:681316672354:web:98f18d8c086729416bc23b"
 };
 
-firebase.initializeApp(firebaseConfig);
-const db = firebase.firestore();
+// Initialize Firebase with Error Catching
+try {
+    firebase.initializeApp(firebaseConfig);
+    var db = firebase.firestore();
+} catch (e) {
+    console.log("Firebase not ready yet");
+}
 
-// --- GAME VARIABLES ---
-const wordList = [
-    "PI", "NETWORK", "BLOCKCHAIN", "CRYPTO", "MINING", "WALLET", "DIGITAL", 
-    "TOKEN", "CURRENCY", "STREAK", "HANGMAN", "DEVELOPER", "BROWSER", 
-    "SECURITY", "FIREBASE", "GITHUB", "STATION", "PIONEER", "MAINNET"
-];
-
+// --- 2. GAME VARIABLES ---
+const wordList = ["PI", "NETWORK", "BLOCKCHAIN", "CRYPTO", "MINING", "WALLET", "DIGITAL", "TOKEN"];
 let selectedWord = "";
 let guessedLetters = [];
 let mistakes = 0;
 const maxMistakes = 6;
 let currentStreak = parseInt(localStorage.getItem('hangmanStreak')) || 0;
-let piUsername = "Guest_Player";
+let piUsername = "Guest_" + Math.floor(Math.random() * 1000);
 
-// --- PI NETWORK AUTHENTICATION ---
-const Pi = window.Pi;
-Pi.init({ version: "2.0" });
-
-async function authPiUser() {
-    try {
-        const scopes = ['username'];
-        const auth = await Pi.authenticate(scopes, onIncompletePaymentFound);
-        piUsername = auth.user.username;
-        document.getElementById('user-display').innerText = "Playing as: " + piUsername;
-    } catch (err) {
-        console.error("Pi Auth failed:", err);
-        document.getElementById('user-display').innerText = "Playing as Guest";
-    }
+// --- 3. PI SDK ---
+try {
+    const Pi = window.Pi;
+    Pi.init({ version: "2.0" });
+    Pi.authenticate(['username'], (payment) => {}).then(res => {
+        piUsername = res.user.username;
+        document.getElementById('user-display').innerText = "Player: " + piUsername;
+    });
+} catch (e) {
+    console.log("Not in Pi Browser");
 }
 
-function onIncompletePaymentFound(payment) {
-    console.log("Incomplete payment found:", payment);
-}
-
-// --- CORE GAME LOGIC ---
+// --- 4. THE GAME ENGINE (CRITICAL) ---
 function initGame() {
-    // Pick a random word
+    console.log("Game Initializing...");
     selectedWord = wordList[Math.floor(Math.random() * wordList.length)];
     guessedLetters = [];
     mistakes = 0;
-    
-    // Reset UI
-    document.getElementById('message-display').innerText = "";
+
+    // Force Update UI
     document.getElementById('streak-count').innerText = currentStreak;
     document.getElementById('lives-count').innerText = maxMistakes - mistakes;
-    
+    document.getElementById('message-display').innerText = "";
+
     renderWord();
     renderKeyboard();
 }
 
 function renderWord() {
-    let displayString = "";
-    for (let i = 0; i < selectedWord.length; i++) {
-        let letter = selectedWord[i];
-        if (guessedLetters.includes(letter)) {
-            displayString += `<span class="letter">${letter}</span>`;
-        } else {
-            displayString += `<span class="letter">_</span>`;
-        }
-    }
-    document.getElementById('word-display').innerHTML = displayString;
+    const display = selectedWord.split("").map(l => 
+        `<span class="letter">${guessedLetters.includes(l) ? l : "_"}</span>`
+    ).join("");
+    document.getElementById('word-display').innerHTML = display;
 }
 
 function renderKeyboard() {
     const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
-    let keyboardHTML = "";
-    for (let i = 0; i < alphabet.length; i++) {
-        let char = alphabet[i];
-        keyboardHTML += `<button class="key" id="btn-${char}" onclick="makeGuess('${char}')">${char}</button>`;
-    }
-    document.getElementById('keyboard-container').innerHTML = keyboardHTML;
+    const kb = alphabet.split("").map(l => 
+        `<button class="key" id="btn-${l}" onclick="makeGuess('${l}')">${l}</button>`
+    ).join("");
+    document.getElementById('keyboard-container').innerHTML = kb;
 }
 
 function makeGuess(letter) {
-    if (guessedLetters.includes(letter)) return;
+    if (guessedLetters.includes(letter) || mistakes >= maxMistakes) return;
 
     guessedLetters.push(letter);
     const btn = document.getElementById(`btn-${letter}`);
-    btn.disabled = true;
+    if (btn) btn.disabled = true;
 
     if (selectedWord.includes(letter)) {
-        btn.classList.add("correct");
+        if (btn) btn.style.background = "#4CAF50";
         renderWord();
         checkWin();
     } else {
-        btn.classList.add("wrong");
+        if (btn) btn.style.background = "#f44336";
         mistakes++;
         document.getElementById('lives-count').innerText = maxMistakes - mistakes;
-        if (mistakes >= maxMistakes) {
-            handleGameOver();
-        }
+        if (mistakes >= maxMistakes) gameOver();
     }
 }
 
 function checkWin() {
-    const currentDisplay = document.getElementById('word-display').innerText.replace(/\s/g, '');
-    if (currentDisplay === selectedWord) {
+    const currentText = document.getElementById('word-display').innerText.replace(/\s/g, '');
+    if (currentText === selectedWord) {
         currentStreak++;
         localStorage.setItem('hangmanStreak', currentStreak);
         document.getElementById('message-display').innerText = "WINNER! 🎉";
-        saveToLeaderboard();
+        saveScore();
         setTimeout(initGame, 2000);
     }
 }
 
-function handleGameOver() {
-    document.getElementById('message-display').innerText = "GAME OVER! Word was: " + selectedWord;
+function gameOver() {
+    document.getElementById('message-display').innerText = "Game Over! Word: " + selectedWord;
     currentStreak = 0;
     localStorage.setItem('hangmanStreak', 0);
-    saveToLeaderboard();
+    saveScore();
     setTimeout(initGame, 3000);
 }
 
-// --- LEADERBOARD SYNC ---
-function saveToLeaderboard() {
-    db.collection("leaderboard").doc(piUsername).set({
-        username: piUsername,
-        streak: currentStreak,
-        lastUpdated: firebase.firestore.FieldValue.serverTimestamp()
-    }, { merge: true });
+function saveScore() {
+    if (db) {
+        db.collection("leaderboard").doc(piUsername).set({
+            username: piUsername,
+            streak: currentStreak,
+            timestamp: firebase.firestore.FieldValue.serverTimestamp()
+        }, { merge: true });
+    }
 }
 
-// --- PI PAYMENT (HINT) ---
+// Payment/Hint Logic
 async function buyHint() {
     try {
-        const payment = await Pi.createPayment({
-            amount: 0.1, // You can set this to 1 or 0.1
-            memo: "Buy a hint for Hangman",
-            metadata: { type: "hint_purchase" },
+        await Pi.createPayment({
+            amount: 0.1,
+            memo: "Buy Hint",
+            metadata: { type: "hint" }
         }, {
-            onReadyForServerApproval: (id) => { console.log("Approval pending:", id); },
-            onReadyForServerCompletion: (id, txid) => { 
-                console.log("Payment Complete!");
-                revealOneLetter();
+            onReadyForServerApproval: (id) => {},
+            onReadyForServerCompletion: (id, txid) => {
+                const remaining = selectedWord.split("").filter(l => !guessedLetters.includes(l));
+                if (remaining.length > 0) makeGuess(remaining[0]);
             },
-            onCancel: (id) => { console.log("Payment cancelled"); },
-            onError: (error, id) => { console.error("Payment error", error); }
+            onCancel: () => {},
+            onError: () => {}
         });
-    } catch (err) {
-        console.error("Payment setup failed", err);
-    }
+    } catch (e) { alert("Payment only works in Pi Browser"); }
 }
 
-function revealOneLetter() {
-    for (let i = 0; i < selectedWord.length; i++) {
-        if (!guessedLetters.includes(selectedWord[i])) {
-            makeGuess(selectedWord[i]);
-            break;
-        }
-    }
-}
-
-// --- MUSIC CONTROL ---
 const music = document.getElementById('bg-music');
 function toggleMusic() {
     if (music.paused) {
@@ -175,6 +146,5 @@ function toggleMusic() {
     }
 }
 
-// Start everything
-authPiUser();
+// START THE GAME MANUALLY
 initGame();

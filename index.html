@@ -12,8 +12,8 @@
         <h1 id="user-display">Hangman Pi</h1>
         
         <div class="stats-panel">
-            <div class="stat-box">Streak: <span id="streak-count">0</span></div>
-            <div class="stat-box">Lives: <span id="lives-count">6</span></div>
+            <div>Streak: <span id="streak-count">0</span></div>
+            <div>Lives: <span id="lives-count">6</span></div>
         </div>
 
         <div id="word-display" class="word-view"></div>
@@ -22,9 +22,9 @@
         <p id="message-display"></p>
 
         <div class="action-buttons">
-            <button onclick="initGame()" class="btn-main">New Game</button>
-            <button onclick="buyHint()" class="btn-hint">💡 Buy Hint (0.1 Pi)</button>
-            <a href="rankings.html" class="btn-rank">🏆 Rankings</a>
+            <button onclick="initGame()" style="background: #673ab7; color: white;">New Game</button>
+            <button onclick="buyHint()" style="background: #009688; color: white;">💡 Hint (0.1 Pi)</button>
+            <a href="rankings.html" style="background: #ff9800; color: white; padding: 10px; text-decoration: none; border-radius: 5px;">🏆 Rankings</a>
         </div>
 
         <div class="footer-controls">
@@ -33,7 +33,6 @@
         </div>
     </div>
 
-    <!-- SDKs -->
     <script src="https://gstatic.com"></script>
     <script src="https://gstatic.com"></script>
     <script src="app.js"></script>

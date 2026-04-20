@@ -1,4 +1,4 @@
-// --- 1. FIREBASE CONFIG ---
+// --- FIREBASE CONFIG ---
 const firebaseConfig = {
     apiKey: "AIzaSyCsuU8vSH5qRfcm5E78Q7KFYHFJTOTKGDM",
     authDomain: "://firebaseapp.com",
@@ -7,44 +7,38 @@ const firebaseConfig = {
     messagingSenderId: "681316672354",
     appId: "1:681316672354:web:98f18d8c086729416bc23b"
 };
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
 
-// Initialize Firebase with Error Catching
-try {
-    firebase.initializeApp(firebaseConfig);
-    var db = firebase.firestore();
-} catch (e) {
-    console.log("Firebase not ready yet");
-}
+// --- CATEGORIES & WORDS ---
+const gameData = {
+    "Crypto": ["BITCOIN", "ETHEREUM", "BLOCKCHAIN", "WALLET", "MINING"],
+    "Pi Network": ["PIONEER", "MAINNET", "BROWSER", "NODE", "SECURITY"],
+    "Animals": ["ELEPHANT", "GIRAFFE", "TIGER", "KANGAROO", "PENGUIN"],
+    "Countries": ["BRAZIL", "CANADA", "GERMANY", "JAPAN", "NIGERIA"]
+};
 
-// --- 2. GAME VARIABLES ---
-const wordList = ["PI", "NETWORK", "BLOCKCHAIN", "CRYPTO", "MINING", "WALLET", "DIGITAL", "TOKEN"];
 let selectedWord = "";
 let guessedLetters = [];
 let mistakes = 0;
 const maxMistakes = 6;
 let currentStreak = parseInt(localStorage.getItem('hangmanStreak')) || 0;
-let piUsername = "Guest_" + Math.floor(Math.random() * 1000);
 
-// --- 3. PI SDK ---
-try {
-    const Pi = window.Pi;
-    Pi.init({ version: "2.0" });
-    Pi.authenticate(['username'], (payment) => {}).then(res => {
-        piUsername = res.user.username;
-        document.getElementById('user-display').innerText = "Player: " + piUsername;
-    });
-} catch (e) {
-    console.log("Not in Pi Browser");
-}
-
-// --- 4. THE GAME ENGINE (CRITICAL) ---
+// --- GAME ENGINE ---
 function initGame() {
-    console.log("Game Initializing...");
-    selectedWord = wordList[Math.floor(Math.random() * wordList.length)];
+    // 1. Pick a random category
+    const categories = Object.keys(gameData);
+    const category = categories[Math.floor(Math.random() * categories.length)];
+    
+    // 2. Pick a random word from that category
+    const words = gameData[category];
+    selectedWord = words[Math.floor(Math.random() * words.length)];
+    
     guessedLetters = [];
     mistakes = 0;
 
-    // Force Update UI
+    // 3. Update UI
+    document.getElementById('category-name').innerText = "Category: " + category;
     document.getElementById('streak-count').innerText = currentStreak;
     document.getElementById('lives-count').innerText = maxMistakes - mistakes;
     document.getElementById('message-display').innerText = "";
@@ -70,7 +64,6 @@ function renderKeyboard() {
 
 function makeGuess(letter) {
     if (guessedLetters.includes(letter) || mistakes >= maxMistakes) return;
-
     guessedLetters.push(letter);
     const btn = document.getElementById(`btn-${letter}`);
     if (btn) btn.disabled = true;
@@ -78,73 +71,41 @@ function makeGuess(letter) {
     if (selectedWord.includes(letter)) {
         if (btn) btn.style.background = "#4CAF50";
         renderWord();
-        checkWin();
+        if (document.getElementById('word-display').innerText.replace(/\s/g, '') === selectedWord) win();
     } else {
         if (btn) btn.style.background = "#f44336";
         mistakes++;
         document.getElementById('lives-count').innerText = maxMistakes - mistakes;
-        if (mistakes >= maxMistakes) gameOver();
+        if (mistakes >= maxMistakes) lose();
     }
 }
 
-function checkWin() {
-    const currentText = document.getElementById('word-display').innerText.replace(/\s/g, '');
-    if (currentText === selectedWord) {
-        currentStreak++;
-        localStorage.setItem('hangmanStreak', currentStreak);
-        document.getElementById('message-display').innerText = "WINNER! 🎉";
-        saveScore();
-        setTimeout(initGame, 2000);
-    }
+function win() {
+    currentStreak++;
+    localStorage.setItem('hangmanStreak', currentStreak);
+    document.getElementById('message-display').innerText = "WINNER! 🎉";
+    setTimeout(initGame, 2000);
 }
 
-function gameOver() {
-    document.getElementById('message-display').innerText = "Game Over! Word: " + selectedWord;
+function lose() {
+    document.getElementById('message-display').innerText = "Word was: " + selectedWord;
     currentStreak = 0;
     localStorage.setItem('hangmanStreak', 0);
-    saveScore();
     setTimeout(initGame, 3000);
 }
 
-function saveScore() {
-    if (db) {
-        db.collection("leaderboard").doc(piUsername).set({
-            username: piUsername,
-            streak: currentStreak,
-            timestamp: firebase.firestore.FieldValue.serverTimestamp()
-        }, { merge: true });
-    }
-}
-
-// Payment/Hint Logic
-async function buyHint() {
-    try {
-        await Pi.createPayment({
-            amount: 0.1,
-            memo: "Buy Hint",
-            metadata: { type: "hint" }
-        }, {
-            onReadyForServerApproval: (id) => {},
-            onReadyForServerCompletion: (id, txid) => {
-                const remaining = selectedWord.split("").filter(l => !guessedLetters.includes(l));
-                if (remaining.length > 0) makeGuess(remaining[0]);
-            },
-            onCancel: () => {},
-            onError: () => {}
-        });
-    } catch (e) { alert("Payment only works in Pi Browser"); }
-}
-
+// --- MUSIC FIX ---
 const music = document.getElementById('bg-music');
 function toggleMusic() {
+    // Browsers block music until a user clicks something
     if (music.paused) {
-        music.play();
-        document.getElementById('music-btn').innerText = "🔇 Mute";
+        music.play().catch(err => alert("Please interact with the page first to play music!"));
+        document.getElementById('music-btn').innerText = "🔇 Stop Music";
     } else {
         music.pause();
-        document.getElementById('music-btn').innerText = "🎵 Music";
+        document.getElementById('music-btn').innerText = "🎵 Play Music";
     }
 }
 
-// START THE GAME MANUALLY
+// Start Game
 initGame();

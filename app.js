@@ -1,8 +1,4 @@
-// Pi SDK Initialization
-const Pi = window.Pi;
-Pi.init({ version: "2.0" });
-
-// Your Firebase Config
+// Firebase Config - Use your actual keys
 const firebaseConfig = {
     apiKey: "AIzaSyCsuU8vSH5qRfcm5E78Q7KFYHFJTOTKGDM",
     authDomain: "://firebaseapp.com",
@@ -11,98 +7,92 @@ const firebaseConfig = {
     messagingSenderId: "681316672354",
     appId: "1:681316672354:web:98f18d8c086729416bc23b"
 };
-
 firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 
-const words = ["PI", "NETWORK", "CRYPTO", "BLOCKCHAIN", "HANGMAN", "WEB3", "MINING", "WALLET"];
-let selectedWord = "";
-let guessedLetters = [];
-let mistakes = 0;
-const maxMistakes = 6;
-let streak = parseInt(localStorage.getItem('hangmanStreak')) || 0;
+// Game Logic
+const words = ["PI", "NETWORK", "BLOCKCHAIN", "CRYPTO", "MINING", "WALLET"];
+let selectedWord = "", guessedLetters = [], mistakes = 0, streak = parseInt(localStorage.getItem('hangmanStreak')) || 0;
+const maxMistakes = 6, music = document.getElementById('bg-music');
 
-const wordDisplay = document.getElementById('word-display');
-const keyboard = document.getElementById('keyboard');
-const message = document.getElementById('message-display');
-const streakDisplay = document.getElementById('streak');
-const music = document.getElementById('bg-music');
+// Pi Authentication
+let currentUser = "Anonymous";
+Pi.authenticate(['username'], (payment) => { /* handle incomplete */ }).then(res => {
+    currentUser = res.user.username;
+    document.getElementById('user-welcome').innerText = `Hello, ${currentUser}!`;
+});
 
 function initGame() {
     selectedWord = words[Math.floor(Math.random() * words.length)];
-    guessedLetters = [];
-    mistakes = 0;
-    message.innerText = "";
-    streakDisplay.innerText = streak;
-    renderWord();
-    renderKeyboard();
+    guessedLetters = []; mistakes = 0;
+    document.getElementById('message-display').innerText = "";
+    document.getElementById('streak').innerText = streak;
+    document.getElementById('lives-display').innerText = `Lives: ${maxMistakes}`;
+    renderWord(); renderKeyboard();
 }
 
 function renderWord() {
-    wordDisplay.innerHTML = selectedWord.split("").map(letter => 
-        `<span class="letter">${guessedLetters.includes(letter) ? letter : "_"}</span>`
-    ).join("");
+    document.getElementById('word-display').innerHTML = selectedWord.split("").map(l => 
+        `<span class="letter">${guessedLetters.includes(l) ? l : "_"}</span>`).join("");
 }
 
 function renderKeyboard() {
     const letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
-    keyboard.innerHTML = letters.split("").map(l => 
-        `<button class="key" onclick="handleGuess('${l}')" id="key-${l}">${l}</button>`
-    ).join("");
+    document.getElementById('keyboard').innerHTML = letters.split("").map(l => 
+        `<button class="key" onclick="handleGuess('${l}')" id="key-${l}">${l}</button>`).join("");
 }
 
-function handleGuess(letter) {
-    if (guessedLetters.includes(letter) || mistakes >= maxMistakes) return;
-    guessedLetters.push(letter);
-    document.getElementById(`key-${letter}`).disabled = true;
-
-    if (selectedWord.includes(letter)) {
-        renderWord();
-        if (!wordDisplay.innerText.includes("_")) {
-            streak++;
-            localStorage.setItem('hangmanStreak', streak);
-            message.innerText = "You Won! 🎉";
-            syncToFirebase();
-            setTimeout(initGame, 2000);
-        }
-    } else {
-        mistakes++;
-        if (mistakes >= maxMistakes) {
-            message.innerText = `Game Over! Word: ${selectedWord}`;
-            streak = 0;
-            localStorage.setItem('hangmanStreak', 0);
-            syncToFirebase();
-            setTimeout(initGame, 3000);
-        }
+function handleGuess(l) {
+    if (guessedLetters.includes(l) || mistakes >= maxMistakes) return;
+    guessedLetters.push(l); document.getElementById(`key-${l}`).disabled = true;
+    if (selectedWord.includes(l)) { 
+        renderWord(); if (!document.getElementById('word-display').innerText.includes("_")) win(); 
+    } else { 
+        mistakes++; document.getElementById('lives-display').innerText = `Lives: ${maxMistakes - mistakes}`;
+        if (mistakes >= maxMistakes) lose(); 
     }
 }
 
-function syncToFirebase() {
-    // Attempt to get real Pi Username, fallback to Player_ID
-    Pi.authenticate(['username'], (payment) => {}).then(function(auth) {
-        const username = auth.user.username;
-        db.collection("leaderboard").doc(username).set({
-            username: username,
-            streak: streak,
-            lastUpdated: firebase.firestore.FieldValue.serverTimestamp()
-        }, { merge: true });
-    }).catch(function(error) {
-        const fallback = "Player_" + Math.floor(Math.random() * 1000);
-        db.collection("leaderboard").doc(fallback).set({
-            username: fallback,
-            streak: streak
-        }, { merge: true });
+function win() {
+    streak++; localStorage.setItem('hangmanStreak', streak);
+    document.getElementById('message-display').innerText = "Winner! 🎉";
+    syncLeaderboard(); setTimeout(initGame, 2000);
+}
+
+function lose() {
+    streak = 0; localStorage.setItem('hangmanStreak', 0);
+    document.getElementById('message-display').innerText = `Over! Word: ${selectedWord}`;
+    syncLeaderboard(); setTimeout(initGame, 3000);
+}
+
+function syncLeaderboard() {
+    db.collection("leaderboard").doc(currentUser).set({
+        username: currentUser, streak: streak, lastUpdated: firebase.firestore.FieldValue.serverTimestamp()
+    }, { merge: true });
+}
+
+// Pi Payment for Hint
+function requestHint() {
+    Pi.createPayment({
+        amount: 1,
+        memo: "Purchase one letter hint for Hangman",
+        metadata: { type: "hint" }
+    }, {
+        onReadyForServerApproval: (id) => { /* call your server to approve */ },
+        onReadyForServerCompletion: (id, txid) => { revealHint(); },
+        onCancel: () => {},
+        onError: (e) => {}
     });
 }
 
+function revealHint() {
+    const hidden = selectedWord.split("").filter(l => !guessedLetters.includes(l));
+    if (hidden.length > 0) handleGuess(hidden[0]);
+}
+
 function handleMusic() {
-    if (music.paused) {
-        music.play().catch(e => console.log("Music blocked by browser"));
-        document.getElementById('music-btn').innerText = "🔇 Mute";
-    } else {
-        music.pause();
-        document.getElementById('music-btn').innerText = "🎵 Play Music";
-    }
+    if (music.paused) { music.play(); document.getElementById('music-btn').innerText = "🔇 Mute"; }
+    else { music.pause(); document.getElementById('music-btn').innerText = "🎵 Play Music"; }
 }
 
 initGame();

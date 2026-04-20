@@ -3,34 +3,38 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Hangman - Pi Network</title>
+    <title>Hangman Pi Network Edition</title>
     <link rel="stylesheet" href="style.css">
-    <!-- Pi SDK must be in the head -->
+    <!-- Load Pi SDK 2.0 -->
     <script src="https://sdk.minepi.com/pi-sdk.js"></script>
+    <script>Pi.init({ version: "2.0" })</script>
 </head>
 <body>
     <div class="game-container">
-        <h1>Hangman</h1>
-        <div class="stats">
-            <p>Streak: <span id="streak">0</span></p>
+        <h1 id="user-welcome">Hangman</h1>
+        <div class="stats-bar">
+            <span>Streak: <span id="streak">0</span></span>
+            <span id="lives-display">Lives: 6</span>
         </div>
-        
-        <div id="word-display" class="word-section"></div>
-        <div id="keyboard" class="keyboard-section"></div>
+
+        <div id="word-display" class="word-container"></div>
+        <div id="keyboard" class="keyboard-container"></div>
+
         <p id="message-display"></p>
 
-        <div class="menu-actions">
+        <div class="button-row">
             <button onclick="initGame()">New Game</button>
+            <button onclick="requestHint()" id="hint-btn">💡 Buy Hint (1 Pi)</button>
             <a href="rankings.html" class="rankings-link">🏆 World Rankings</a>
         </div>
 
-        <div class="media-controls">
+        <div class="audio-controls">
             <audio id="bg-music" src="music.mp3" loop></audio>
             <button id="music-btn" onclick="handleMusic()">🎵 Play Music</button>
         </div>
     </div>
 
-    <!-- Firebase SDKs (Compat Version) -->
+    <!-- Firebase SDKs -->
     <script src="https://gstatic.com"></script>
     <script src="https://gstatic.com"></script>
     <script src="app.js"></script>

@@ -3,38 +3,37 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Hangman Pi Network Edition</title>
+    <title>Hangman Pi</title>
     <link rel="stylesheet" href="style.css">
-    <!-- Load Pi SDK 2.0 -->
-    <script src="https://sdk.minepi.com/pi-sdk.js"></script>
-    <script>Pi.init({ version: "2.0" })</script>
+    <script src="https://minepi.com"></script>
 </head>
 <body>
-    <div class="game-container">
-        <h1 id="user-welcome">Hangman</h1>
-        <div class="stats-bar">
-            <span>Streak: <span id="streak">0</span></span>
-            <span id="lives-display">Lives: 6</span>
+    <div class="game-wrapper">
+        <h1 id="user-display">Hangman Pi</h1>
+        
+        <div class="stats-panel">
+            <div class="stat-box">Streak: <span id="streak-count">0</span></div>
+            <div class="stat-box">Lives: <span id="lives-count">6</span></div>
         </div>
 
-        <div id="word-display" class="word-container"></div>
-        <div id="keyboard" class="keyboard-container"></div>
+        <div id="word-display" class="word-view"></div>
+        <div id="keyboard-container" class="key-view"></div>
 
         <p id="message-display"></p>
 
-        <div class="button-row">
-            <button onclick="initGame()">New Game</button>
-            <button onclick="requestHint()" id="hint-btn">💡 Buy Hint (1 Pi)</button>
-            <a href="rankings.html" class="rankings-link">🏆 World Rankings</a>
+        <div class="action-buttons">
+            <button onclick="initGame()" class="btn-main">New Game</button>
+            <button onclick="buyHint()" class="btn-hint">💡 Buy Hint (0.1 Pi)</button>
+            <a href="rankings.html" class="btn-rank">🏆 Rankings</a>
         </div>
 
-        <div class="audio-controls">
+        <div class="footer-controls">
             <audio id="bg-music" src="music.mp3" loop></audio>
-            <button id="music-btn" onclick="handleMusic()">🎵 Play Music</button>
+            <button id="music-btn" onclick="toggleMusic()">🎵 Music</button>
         </div>
     </div>
 
-    <!-- Firebase SDKs -->
+    <!-- SDKs -->
     <script src="https://gstatic.com"></script>
     <script src="https://gstatic.com"></script>
     <script src="app.js"></script>
